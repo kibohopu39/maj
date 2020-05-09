@@ -15,7 +15,7 @@
             android:layout_width="20dp"
             android:layout_height="15dp"
             android:layout_gravity="center"
-            android:rotation="270"
+            android:rotation="180"
 
 
 
@@ -30,7 +30,7 @@
             android:layout_width="20dp"
             android:layout_height="15dp"
             android:layout_gravity="top"
-            android:rotation="270"
+            android:rotation="180"
 
             />
 
@@ -39,7 +39,7 @@
             android:layout_width="20dp"
             android:layout_height="15dp"
             android:layout_gravity="top"
-            android:rotation="270"
+            android:rotation="180"
 
             />
         <ImageView
@@ -47,7 +47,7 @@
             android:layout_width="20dp"
             android:layout_height="15dp"
             android:layout_gravity="top"
-            android:rotation="270"
+            android:rotation="180"
 
             />
     </LinearLayout>

@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
@@ -18,6 +19,7 @@ import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -40,13 +42,13 @@ public class PlayingActivity extends AppCompatActivity {
     private RZItemTouchHelperCallback mycallback;
     private RecyclerView rv_p1Hand,rv_p2Hand,rv_p3Hand,rv_p4Hand,rv_sea,rv_p1Out,rv_p2Out,rv_p3Out,rv_p4Out;
     private Button btn_mask;
-    private ImageView iv_p2GetCard,iv_p3GetCard,iv_p4GetCard;
+    private ImageView iv_p2GetCard,iv_p3GetCard,iv_p4GetCard,up_arrow;
     public Timer timer=new Timer();
     private TimerTask timerTask;
 
 
     public ArrayList<Integer> p1Hand,p2Hand,p3Hand,p4Hand,seaCards,p1Out,temp_p1Out,p2Out,p3Out,p4Out;
-    private TextView count;
+    private TextView up_count;
 
     private p1_HansListAdapter p1_handadapter;
     private p2_HansListAdapter p2_handadapter;
@@ -63,7 +65,6 @@ public class PlayingActivity extends AppCompatActivity {
     private FragmentTransaction frgT;
     private framlayout  framlayout;
     private EatList eatList;
-    private int state=0;
 
     //Firebase
     private FirebaseDatabase database;
@@ -89,8 +90,8 @@ public class PlayingActivity extends AppCompatActivity {
         rv_p2Out=findViewById(R.id.rv_p2Out);
         rv_p3Out=findViewById(R.id.rv_p3Out);
         rv_p4Out=findViewById(R.id.rv_p4Out);
-        count=findViewById(R.id.count);
-
+        up_count=findViewById(R.id.up_show_lastcards);
+        up_arrow=findViewById(R.id.up_arrow);
 
 
 
@@ -133,6 +134,8 @@ public class PlayingActivity extends AppCompatActivity {
             @Override
             public void deleteState(boolean delete) {
                 if (delete){
+                    int x=ViewConfiguration.getLongPressTimeout();
+                    Log.v("wei","time"+x);
                     //假設拖曳到刪除區域
                     //更改刪除區域顯示的顏色
                     //顯示出牌的字以提示使用者
@@ -171,6 +174,7 @@ public class PlayingActivity extends AppCompatActivity {
         rv_p2Hand.setLayoutManager(p2_linearLayoutManager);
         rv_p3Hand.setLayoutManager(p3_linearLayoutManager);
         rv_p4Hand.setLayoutManager(p4_linearLayoutManager);
+        rv_p4Hand.addItemDecoration(new P4ItemDecoration());
         //設置手牌的調變器
         p2_handadapter=new p2_HansListAdapter();
         rv_p2Hand.setAdapter(p2_handadapter);
@@ -178,10 +182,11 @@ public class PlayingActivity extends AppCompatActivity {
         rv_p3Hand.setAdapter(p3_handadapter);
         p4_handadapter=new p4_HansListAdapter();
         rv_p4Hand.setAdapter(p4_handadapter);
+
         //設置其他三家吃碰區
-        p2Out_linearLayoutManager=new LinearLayoutManager(this,RecyclerView.VERTICAL,false);
-        p3Out_linearLayoutManager=new LinearLayoutManager(this,RecyclerView.HORIZONTAL,false);
-        p4Out_linearLayoutManager=new LinearLayoutManager(this,RecyclerView.VERTICAL,true);
+        p2Out_linearLayoutManager=new LinearLayoutManager(this,RecyclerView.VERTICAL,true);
+        p3Out_linearLayoutManager=new LinearLayoutManager(this,RecyclerView.HORIZONTAL,true);
+        p4Out_linearLayoutManager=new LinearLayoutManager(this,RecyclerView.VERTICAL,false);
         p2Out_listAdapter=new p2Out_ListAdapter();
         p3Out_listAdapter=new p3Out_ListAdapter();
         p4Out_listAdapter=new p4Out_ListAdapter();
@@ -263,6 +268,12 @@ public class PlayingActivity extends AppCompatActivity {
                 p1Hand.add(0,MJObj.getLastCards().get(MJObj.getLastCards().size()-1));
                 MJObj.getLastCards().remove(MJObj.getLastCards().size()-1);
                 MJObj.setMyHand(p1Hand);
+                if(MJObj.getLastCards().size()==79){
+                    timer.schedule(new FirstCountdown(),2000);/**  房主稍微等個兩秒再開始倒數**/
+                }else{
+                    new Thread(new p1Countdown()).start();
+                }
+
             }
 
 
@@ -518,6 +529,7 @@ public class PlayingActivity extends AppCompatActivity {
 //         *  RecyclerView调用onDraw時调用，調用後會再調用 onChildDrawOver
 //         *  @dx item item滑動距離
 //         */
+//
 //        @Override
 //        public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
 //            //控制繪畫
@@ -556,7 +568,9 @@ public class PlayingActivity extends AppCompatActivity {
 //            }
 //            super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
 //        }
-        //手指離開viewHolder後會調用這個函數,用意是指調用動畫前,接著會自動執行onSelectedChanged
+//
+//
+////        手指離開viewHolder後會調用這個函數,用意是指調用動畫前,接著會自動執行onSelectedChanged
         @Override
         public long getAnimationDuration(@NonNull RecyclerView recyclerView, int animationType, float animateDx, float animateDy) {
             up = true;
@@ -630,7 +644,9 @@ public class PlayingActivity extends AppCompatActivity {
             p1Hand.remove(position);
             //改為物件內容
             Collections.sort(p1Hand,Collections.<Integer>reverseOrder());
-
+            //刪除出牌的倒數計時
+            timer.cancel();
+            timer.purge();
 
             //目前可打牌的方式有： 摸牌，吃牌
             //TODO 未來檢察碰牌來的跟 槓牌完摸牌來的
@@ -698,7 +714,6 @@ public class PlayingActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull p3_HansListAdapter.ViewHolder holder, int position) {
             ImageView iv = holder.iv;
-            iv.setRotation(180);
             iv.setImageResource(imgURI(60));
         }
 
@@ -719,7 +734,7 @@ public class PlayingActivity extends AppCompatActivity {
         @NonNull
         @Override
         public p4_HansListAdapter.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.handcard_leftside,null);
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.handcard_leftside,parent,false);
             p4_HansListAdapter.ViewHolder viewHolder=new ViewHolder(view);
             return viewHolder;
         }
@@ -727,9 +742,8 @@ public class PlayingActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull p4_HansListAdapter.ViewHolder holder, int position) {
             ImageView iv = holder.iv;
-            iv.setRotation(90);
-            iv.setImageResource(imgURI(60));
 
+            iv.setImageResource(imgURI(60));
 
         }
 
@@ -743,6 +757,10 @@ public class PlayingActivity extends AppCompatActivity {
             public ViewHolder(View v){
                 super(v);
                 iv=v.findViewById(R.id.iv_handCards);
+                iv.setRotation(90);
+
+//                iv.getMaxWidth();
+                Log.v("wei","Height:"+iv.getMaxHeight());
             }
         }
     }
@@ -949,6 +967,19 @@ public class PlayingActivity extends AppCompatActivity {
         }
     }
 
+    public class P4ItemDecoration extends RecyclerView.ItemDecoration{
+        @Override
+        public void getItemOffsets(@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+            super.getItemOffsets(outRect, view, parent, state);
+            if(parent.getChildAdapterPosition(view)!=0){
+                outRect.bottom=0;
+                outRect.left=0;
+                outRect.top=0;
+                outRect.right=0;
+            }
+        }
+    }
+
     private void updateMJObj(boolean isEPGW,int nextTurn){
         MJObj.setMyHand(p1Hand);
         MJObj.setMyOut(p1Out);
@@ -957,14 +988,11 @@ public class PlayingActivity extends AppCompatActivity {
         MJObj.setWhosTurn((MainApp.myTurn+nextTurn)%4);    //只要手牌打出去就改Firebase 換下一位
         myRef.setValue(MJObj);
     }
-
     public void changeMyWeight(int player,int weight){
         //去更改自己的權重,什麼都不做,吃碰槓胡,分別是0123
         MJObj.getDecision().set(player,weight);
         myRef.setValue(MJObj);
     }
-
-
     private boolean canEat(int lastSeaCard,ArrayList<Integer> whosHand){
         boolean result = false;
         //1.尾張需在11~19.21~29.31~39之間
@@ -1020,7 +1048,7 @@ public class PlayingActivity extends AppCompatActivity {
         return result;
     }
 
- private void EPGW(){   //現在會進來判斷的只有打牌之外的人
+    private void EPGW(){   //現在會進來判斷的只有打牌之外的人
      int lastSeaCard = MJObj.getSeaCards().get(MJObj.getSeaCards().size() - 1);
      //判斷MJObj.p1Hand有沒有能吃碰槓胡的條件
      //把.吃.碰.槓.胡.叫出來
@@ -1039,7 +1067,7 @@ public class PlayingActivity extends AppCompatActivity {
          frgT.add(R.id.framlayout, framlayout).commit();
      }
  }
- private boolean allEPGW(){
+    private boolean allEPGW(){
         boolean epgw=false;
 
         int last = MJObj.getSeaCards().get(MJObj.getSeaCards().size() - 1);
@@ -1051,18 +1079,9 @@ public class PlayingActivity extends AppCompatActivity {
         return epgw;
  }
 
- private class myTimerTask extends TimerTask{
-
-     @Override
-     public void run() {
-
-     }
- }
-private Handler handler=new MyHandler();
-
-
+    ///修改遮罩
+    private Handler handler=new MyHandler();
     public class countdown implements Runnable{
-
         @Override
         public void run() {
             try{
@@ -1070,20 +1089,86 @@ private Handler handler=new MyHandler();
             }catch (Exception e){
                 e.printStackTrace();
             }
-
         }
     }
-
     private class MyHandler extends Handler {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
-
             btn_mask.setVisibility(View.INVISIBLE);
         }
 
     }
+    private Handler p1_cd_handler=new p1_CD_Handler();
+    //顯示打牌倒數
+    public class p1Countdown implements Runnable{
+        @Override
+        public void run() {
+            Bundle bundle=new Bundle();
+            for(int i=5;i>=0;i--){
+                Message msg=new Message();
+                try {
+                    bundle.putInt("time",i);
+                    msg.setData(bundle);
+                    p1_cd_handler.sendMessage(msg);
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }}
+    }
+    private class p1_CD_Handler extends Handler {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            super.handleMessage(msg);
+            Bundle b = msg.getData();
+            int time = b.getInt("time");
+            up_count.setText(""+time);
+            if(time==0) {
+                up_count.setText("");
+                seaCards.add(p1Hand.get(0));
+                Log.v("wei","lastcards:"+seaCards.get(0));
+                seaAdapter.notifyItemChanged(seaCards.size() - 1);
+                p1Hand.remove(0);
+                Log.v("wei","myhand:"+p1Hand.get(0));
+                //改為物件內容
+                Collections.sort(p1Hand, Collections.<Integer>reverseOrder());
 
+                //目前可打牌的方式有： 摸牌，吃牌
+                //TODO 未來檢察碰牌來的跟 槓牌完摸牌來的
+                MJObj.setIsEPGW(false);
+                MJObj.setIsTimeStop(false);
+                MJObj.originDecision();
+
+                //同步物件上傳到Firebase
+                updateMJObj(false,1);
+
+
+                //結束 要記得將Button遮罩開啟
+                btn_mask.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+    private class FirstCountdown extends TimerTask{
+
+        @Override
+        public void run() {
+            Bundle bundle=new Bundle();
+            for(int i=5;i>=0;i--){
+                Message msg=new Message();
+                try {
+                    bundle.putInt("time",i);
+                    msg.setData(bundle);
+                    p1_cd_handler.sendMessage(msg);
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            Log.v("wei","www");
+
+        }
+    }
     public OriginMJ getMJObj(){
         return MJObj;
     }
