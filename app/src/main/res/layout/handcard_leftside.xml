@@ -3,18 +3,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="15dp"
+    android:layout_height="18dp"
     >
     <ImageView
         android:id="@+id/iv_handCards"
-        android:layout_width="20dp"
-        android:layout_height="15dp"
-        android:layout_gravity="right|center"
-        android:padding="0dp"
-
-
-
-
+        android:layout_width="30dp"
+        android:layout_height="18dp"
+        android:layout_gravity="right"
         />
 
 

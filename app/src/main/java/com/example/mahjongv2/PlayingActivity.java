@@ -60,7 +60,7 @@ public class PlayingActivity extends AppCompatActivity {
     private p3Out_ListAdapter p3Out_listAdapter;
     private p4Out_ListAdapter p4Out_listAdapter;
     String uri = "@drawable/"+"mj";
-
+    String ruri = "@drawable/"+"mjr";
     private FragmentManager frgm=getSupportFragmentManager();
     private FragmentTransaction frgT;
     private framlayout  framlayout;
@@ -174,7 +174,7 @@ public class PlayingActivity extends AppCompatActivity {
         rv_p2Hand.setLayoutManager(p2_linearLayoutManager);
         rv_p3Hand.setLayoutManager(p3_linearLayoutManager);
         rv_p4Hand.setLayoutManager(p4_linearLayoutManager);
-        rv_p4Hand.addItemDecoration(new P4ItemDecoration());
+
         //設置手牌的調變器
         p2_handadapter=new p2_HansListAdapter();
         rv_p2Hand.setAdapter(p2_handadapter);
@@ -340,6 +340,10 @@ public class PlayingActivity extends AppCompatActivity {
     //弄個工具來將cards[i] 跟卡片路徑做個連接  i從0開始發
     public int imgURI(int i){
         int getCardsImg = getResources().getIdentifier(uri+i,null,getPackageName());
+        return getCardsImg;
+    }
+    public int rimgURI(int i){
+        int getCardsImg = getResources().getIdentifier(ruri+i,null,getPackageName());
         return getCardsImg;
     }
 
@@ -742,8 +746,7 @@ public class PlayingActivity extends AppCompatActivity {
         @Override
         public void onBindViewHolder(@NonNull p4_HansListAdapter.ViewHolder holder, int position) {
             ImageView iv = holder.iv;
-
-            iv.setImageResource(imgURI(60));
+            iv.setImageResource(rimgURI(60));
 
         }
 
@@ -757,10 +760,6 @@ public class PlayingActivity extends AppCompatActivity {
             public ViewHolder(View v){
                 super(v);
                 iv=v.findViewById(R.id.iv_handCards);
-                iv.setRotation(90);
-
-//                iv.getMaxWidth();
-                Log.v("wei","Height:"+iv.getMaxHeight());
             }
         }
     }
