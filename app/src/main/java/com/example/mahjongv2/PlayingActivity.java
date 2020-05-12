@@ -11,10 +11,15 @@ import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -44,8 +49,23 @@ public class PlayingActivity extends AppCompatActivity {
     private Button btn_mask;
     private ImageView iv_p2GetCard,iv_p3GetCard,iv_p4GetCard,up_arrow;
     public Timer timer=new Timer();
-    private TimerTask timerTask;
+    //背景做事
+    private MyService myService;
+    private boolean isBind;
+    private ServiceConnection mConnection=new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder iBinder) {
+            MyService.LocalBinder binder=(MyService.LocalBinder)iBinder;
+            myService=binder.getService();
+            isBind=true;
+            Log.v("wei","hi");
+        }
 
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isBind=false;
+        }
+    };
 
     public ArrayList<Integer> p1Hand,p2Hand,p3Hand,p4Hand,seaCards,p1Out,temp_p1Out,p2Out,p3Out,p4Out;
     private TextView up_count;
@@ -210,8 +230,22 @@ public class PlayingActivity extends AppCompatActivity {
         rv_sea.setAdapter(seaAdapter);
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+//        跟myService繫結
+        Intent intent=new Intent(this,MyService.class);
+        bindService(intent,mConnection, Context.BIND_AUTO_CREATE);
+        playBackMusic();
+    }
 
-
+    @Override
+    protected void onStop() {
+        if (isBind){
+            unbindService(mConnection);
+        }
+        super.onStop();
+    }
 
     ValueEventListener singleListener = new ValueEventListener() {
         @Override
@@ -346,6 +380,21 @@ public class PlayingActivity extends AppCompatActivity {
         int getCardsImg = getResources().getIdentifier(ruri+i,null,getPackageName());
         return getCardsImg;
     }
+
+
+    public void pauseBackMusic(){
+        Intent intent=new Intent(this,MyService.class);
+        intent.putExtra("ACTION","pause");
+        startService(intent);
+    }
+
+
+    public void playBackMusic(){
+        Intent intent=new Intent(this,MyService.class);
+        intent.putExtra("ACTION","start");
+        startService(intent);
+    }
+
 
     //給fragment使用的
     //關閉fragment

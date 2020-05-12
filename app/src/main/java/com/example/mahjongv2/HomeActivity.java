@@ -230,12 +230,10 @@ public class HomeActivity extends AppCompatActivity {
             movementX+=dx;
             float temp1=getChildAt(0).getTranslationX();
             float temp2=getChildAt(0).getTranslationY();
-            temp1+=dx/1000;
-            temp2+=dx/1000;
 
-            getChildAt(0).setTranslationX(temp1);
-            getChildAt(0).setTranslationY(temp2);
-            Log.v("wei",""+temp1);
+            getChildAt(0).setTranslationX(temp1+dx/1000);
+            getChildAt(0).setTranslationY(temp2+dx/1000);
+            Log.v("wei",""+dx);
             return super.scrollHorizontallyBy(dx, recycler, state);
         }
     }
