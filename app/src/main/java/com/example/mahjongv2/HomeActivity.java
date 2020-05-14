@@ -5,10 +5,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.graphics.Rect;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -40,9 +43,26 @@ public class HomeActivity extends AppCompatActivity {
     private LinearLayoutManager linearLayoutManager;
     private CustomizeLayout customizeLayout;
     private MainButtonsAdapter mainButtonsAdapter;
+    private Button test;
     SessionManager sessionManager;
     String uri = "@drawable/"+"mb1";
+    //背景做事
+    private MyService myService;
+    private boolean isBind;
+    private ServiceConnection mConnection=new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder iBinder) {
+            MyService.LocalBinder binder=(MyService.LocalBinder)iBinder;
+            myService=binder.getService();
+            isBind=true;
+            Log.v("wei","hi");
+        }
 
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            isBind=false;
+        }
+    };
 
     private String[] buttonNames={"房間列表","單機小遊戲","登出"};
     private int itemcount=buttonNames.length;
@@ -80,6 +100,13 @@ public class HomeActivity extends AppCompatActivity {
         name = findViewById(R.id.name);
         email= findViewById(R.id.email);
         mainButtons=findViewById(R.id.mainButtons);
+        test=findViewById(R.id.test);
+        test.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                myService.playeffect(1);
+            }
+        });
         //佈局格式
         linearLayoutManager=new LinearLayoutManager(this,RecyclerView.HORIZONTAL,false);
         customizeLayout=new CustomizeLayout();
@@ -100,6 +127,29 @@ public class HomeActivity extends AppCompatActivity {
         name.setText(mName);
         email.setText(mEmail);
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+//        跟myService繫結
+        Intent intent=new Intent(this,MyService.class);
+        bindService(intent,mConnection, Context.BIND_AUTO_CREATE);
+//        startService(intent);
+
+    }
+
+    @Override
+    protected void onStop() {
+        if (isBind){
+            unbindService(mConnection);
+        }
+        Intent intent=new Intent(this,MyService.class);
+//        stopService(intent);
+        super.onStop();
+    }
+
+
+
 
     public int MBimgURI(int i){
         int getButtonsImg = getResources().getIdentifier(uri+i,null,getPackageName());
@@ -158,7 +208,6 @@ public class HomeActivity extends AppCompatActivity {
     //自訂佈局
     private class CustomizeLayout extends RecyclerView.LayoutManager{
         private View view;
-        private float movementX=0;
         @Override
         public RecyclerView.LayoutParams generateDefaultLayoutParams() {
             return null;
@@ -190,6 +239,9 @@ public class HomeActivity extends AppCompatActivity {
 
                     int right=widthSpace/2+getDecoratedMeasuredWidth(view);
                     int bottom=heightSpace/2+getDecoratedMeasuredHeight(view);
+
+
+
                     //這樣位置就在正中間,這是第一個item的佈局位置
                     layoutDecorated(view, left, top, right, bottom);
                     //想要做出三個item,且可以繞圈圈的效果
@@ -214,6 +266,7 @@ public class HomeActivity extends AppCompatActivity {
                         view.setScaleY(ItemSwipeConfig.DEFAULT_SCALE);
                         view.setTranslationY((-1)*view.getMeasuredHeight()/ItemSwipeConfig.DEFAULT_TRANSLATE_Y);
                         view.setTranslationX((-1)*view.getMeasuredWidth()/ItemSwipeConfig.DEFAULT_TRANSLATE_X);
+
                     }
                 }
 
@@ -224,16 +277,45 @@ public class HomeActivity extends AppCompatActivity {
         public boolean canScrollHorizontally() {//能否水平滑動
             return true;
         }
+
+
+        private boolean item_x=false;
+        private boolean item_y=false;
+        private boolean item1_x=false;
+        private boolean item1_y=false;
+
         @Override
         public int scrollHorizontallyBy(int dx, RecyclerView.Recycler recycler, RecyclerView.State state) {
             //手指向右滑--->dx為負
-            movementX+=dx;
-            float temp1=getChildAt(0).getTranslationX();
-            float temp2=getChildAt(0).getTranslationY();
+//            int position=0;
+//            getChildAt(position);//獲得item,目前只有三個
 
-            getChildAt(0).setTranslationX(temp1+dx/1000);
-            getChildAt(0).setTranslationY(temp2+dx/1000);
-            Log.v("wei",""+dx);
+            float temp0_x=getChildAt(0).getTranslationX();
+//            float temp1_x=getChildAt(1).getTranslationX();
+            float temp2_x=getChildAt(2).getTranslationX();
+            float temp0_y=getChildAt(0).getTranslationY();
+            float temp1_y=getChildAt(1).getTranslationY();
+//            float temp2_y=getChildAt(2).getTranslationY();
+            //item0的X軸
+            if (temp0_x>=197){
+                item_x=true;
+            }else if (temp0_x<=-197){
+                item_x=false;
+            }
+            if(!item_x) {//是否要開始回走,否
+                if (temp0_x < 197 || temp0_x > -197) {
+                    getChildAt(0).setTranslationX(temp0_x - dx / 2);
+                }
+            } else if (item_x) {//是否開始回走,是
+                if (temp0_x - dx / 2 < 197 || temp0_x - dx / 2 > -197) {
+                    getChildAt(0).setTranslationX(temp0_x + dx / 2);
+                }
+            }
+//            getChildAt(1).setTranslationX(temp1_x+1.5f*dx/2);
+//
+            getChildAt(0).setTranslationY(temp0_y-dx/2);
+//            getChildAt(1).setTranslationY(temp1_y+dx/2);
+//            getChildAt(2).setTranslationY(temp2_y+dx/2);
             return super.scrollHorizontallyBy(dx, recycler, state);
         }
     }

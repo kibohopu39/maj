@@ -30,7 +30,9 @@
         <activity
             android:name=".LoginActivity"
             android:screenOrientation="landscape"
-            android:theme="@style/AppThemeRegist" />
+            android:theme="@style/AppThemeRegist"
+            android:windowSoftInputMode="stateVisible|adjustResize"/>
+
         <activity
             android:name=".RegisterActivity"
             android:screenOrientation="landscape"
